@@ -8,7 +8,7 @@ application in the chrome of the device it runs on**.
 |---|---|
 | `Core/` | the model: skins, windows, gestures, apps, `update : Msg -> Model -> Model * Effect list`. Pure, no host; effects (the timed sieve) are data. Compiled to WebAssembly GC with the browser project, and run under .NET |
 | `Browser/` | the view and the Elmish loop on `Browser.Html`: the DOM is the same in every system, the class of the screen says which one; what differs in content (a menu bar, a navigation bar) is decided here |
-| `Tests/` | 39 checks of the model under .NET: windows and focus, the gestures (from where the press started, kept on the screen), the Android navigation, the apps, the sieve (168 primes below a thousand, 78 498 below a million) |
+| `Tests/` | 40 checks of the model under .NET: windows and focus, the gestures (from where the press started, kept on the screen), the Android navigation, the apps, the sieve (168 primes below a thousand, 78 498 below a million) |
 | the page | `demos/wasmos/index.html` in [fsharp-wasm-runtime](https://github.com/fsharp-wasm/fsharp-wasm-runtime): the CSS that makes each system look as it does, and `tests/e2e/wasmos.mjs`, which drives the compiled module in Chromium (46 checks) |
 
 ## Run it
