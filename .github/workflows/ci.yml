@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04   # Playwright does not support chromium on ubuntu-latest (26.04) yet
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+
+      - name: The device probe finds what this engine has, and says so when a feature is missing
+        run: node tests/probe.mjs

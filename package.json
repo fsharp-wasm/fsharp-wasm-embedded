@@ -1,0 +1,14 @@
+{
+  "name": "fsharp-wasm-embedded",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The universal shell of the fsharp-wasm platform: desktop and mobile hosts for compiled WebAssembly GC applications.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/probe.mjs"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

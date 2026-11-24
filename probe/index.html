@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Can this device run fsharp-wasm?</title>
+<style>
+  :root { color-scheme: light dark; --ok: #1a7f37; --no: #cf222e; --line: color-mix(in srgb, currentColor 18%, transparent); }
+  body { font: 1.15rem/1.45 system-ui, sans-serif; margin: 0; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); max-width: 46rem; margin-inline: auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.1rem; margin: 1.5rem 0 .25rem; }
+  p.sub { margin: 0 0 1rem; opacity: .75; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: .35rem .5rem; border-top: 1px solid var(--line); vertical-align: top; }
+  td:first-child { width: 2.2rem; font-weight: 700; text-align: center; }
+  td.yes:first-child { color: var(--ok); } td.no:first-child { color: var(--no); }
+  td small { display: block; opacity: .7; word-break: break-word; }
+  button { font: inherit; padding: .6rem 1.1rem; margin: 1rem .5rem 0 0; border-radius: .5rem; border: 2px solid currentColor; background: transparent; color: inherit; }
+  button:focus-visible { outline: 4px solid Highlight; outline-offset: 2px; }
+  #verdict { font-weight: 700; margin: .5rem 0; }
+</style>
+</head>
+<body>
+<h1>Can this device run fsharp-wasm?</h1>
+<p class="sub">Checks the WebAssembly features the compiler's modules need, and the web APIs the runtime uses. Nothing leaves this page.</p>
+<p id="verdict" role="status">Running…</p>
+<div id="out"></div>
+<button id="copy">Copy report</button><button id="share" hidden>Share report</button>
+<script type="module">
+// Probe version: bump when a check is added or changed, so that reports can be compared.
+const VERSION = 1;
+
+// The four feature modules are assembled from modules/*.wat (wasm-tools parse); every module the compiler emits uses all four (checked 2026-11-24 on the 14 shipped modules).
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+const BYTES = {
+  gc:          b64("AGFzbQEAAAABCQJfAX8AYAABfwMCAQEHBwEDcnVuAAAKDQELAEEH+wAA+wIAAAsADQRuYW1lBAYBAANib3g="),
+  tailCall:    b64("AGFzbQEAAAABCwJgAn9/AX9gAAF/AwMCAAEHBwEDcnVuAAEKJAIXACAARQRAIAEPCyAAQQFrIAFBAWoSAAsKAEGgjQZBABAACwAcBG5hbWUBCAEABWNvdW50AgsBAAIAAW4BA2FjYw=="),
+  exceptions:  b64("AGFzbQEAAAABBAFgAAADAgEADQMBAAAHBwEDcnVuAAAKBgEEAAgACwARBG5hbWULCgEAB2ZhaWx1cmU="),
+  jsString:    b64("AGFzbQEAAAABBgFgAW8BfwIZAQ53YXNtOmpzLXN0cmluZwZsZW5ndGgAAAMCAQAHBwEDcnVuAAEKCAEGACAAEAALABAEbmFtZQEJAQAGbGVuZ3Ro"),
+};
+
+const attempt = async (f) => { try { const r = await f(); return r === true ? { ok: true } : r === false ? { ok: false } : { ok: true, detail: String(r) }; } catch (e) { return { ok: false, detail: String(e?.message ?? e).slice(0, 160) }; } };
+
+// ── what the compiler's modules need from the engine ──
+const instantiate = async (bytes, imports = {}, options) => (await WebAssembly.instantiate(await WebAssembly.compile(bytes, options), imports)).exports;
+const engine = {
+  "WebAssembly GC (struct, array, ref.cast)":        () => instantiate(BYTES.gc).then((e) => e.run() === 7),
+  "Tail calls (return_call)":                         () => instantiate(BYTES.tailCall).then((e) => e.run() === 100000),
+  "Exception handling (tag, throw)":                  async () => { const e = await instantiate(BYTES.exceptions); try { e.run(); return false; } catch (x) { return typeof WebAssembly.Exception === "function" && x instanceof WebAssembly.Exception; } },
+  "JS string builtins (wasm:js-string)":              () => instantiate(BYTES.jsString, {}, { builtins: ["js-string"] }).then((e) => e.run("four") === 4),
+};
+
+// ── the web APIs runtime/*.js and the planned device APIs fall back on ──
+const worker = () => new Promise((resolve) => {
+  const url = URL.createObjectURL(new Blob(["export const ok = 1; postMessage('up');"], { type: "text/javascript" }));
+  const w = new Worker(url, { type: "module" });
+  const done = (ok) => { w.terminate(); URL.revokeObjectURL(url); resolve(ok); };
+  w.onmessage = () => done(true); w.onerror = () => done(false); setTimeout(() => done(false), 2000);
+});
+const has = (path) => () => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), globalThis) !== undefined;
+const webApis = {
+  "Module workers":                       worker,
+  "Canvas 2D":                            () => !!document.createElement("canvas").getContext("2d"),
+  "OffscreenCanvas":                      has("OffscreenCanvas"),
+  "WebGL 2":                              () => !!document.createElement("canvas").getContext("webgl2"),
+  "WebGPU (adapter)":                     async () => !!(await navigator.gpu?.requestAdapter()),
+  "IndexedDB":                            has("indexedDB"),
+  "BroadcastChannel":                     has("BroadcastChannel"),
+  "Clipboard (writeText)":                has("navigator.clipboard.writeText"),
+  "SharedArrayBuffer + cross-origin isolated": () => typeof SharedArrayBuffer === "function" && crossOriginIsolated === true,
+  "Service worker":                       has("navigator.serviceWorker"),
+  "Share sheet (navigator.share)":        has("navigator.share"),
+  "Vibration":                            has("navigator.vibrate"),
+  "Screen wake lock":                     has("navigator.wakeLock"),
+  "Screen orientation":                   has("screen.orientation"),
+  "Notifications":                        has("Notification"),
+  "Geolocation":                          has("navigator.geolocation"),
+  "Camera and microphone (getUserMedia)": has("navigator.mediaDevices.getUserMedia"),
+  "Persistent storage":                   has("navigator.storage.persist"),
+  "File System Access / OPFS":            has("navigator.storage.getDirectory"),
+  "Gamepads":                             has("navigator.getGamepads"),
+  "Web Bluetooth":                        has("navigator.bluetooth"),
+  "WebUSB":                               has("navigator.usb"),
+  "Web Serial":                           has("navigator.serial"),
+};
+
+// ── what the device is ──
+const media = (q) => matchMedia(q).matches;
+const safeArea = () => { const d = document.createElement("div"); d.style.cssText = "position:fixed;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"; document.body.append(d); const s = getComputedStyle(d); const r = [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft]; d.remove(); return r.join(" "); };
+const device = () => ({
+  userAgent: navigator.userAgent,
+  brands: navigator.userAgentData?.brands?.map((b) => `${b.brand} ${b.version}`) ?? null,
+  platform: navigator.userAgentData?.platform ?? navigator.platform ?? null,
+  screen: `${screen.width}x${screen.height} @${devicePixelRatio}`,
+  viewport: `${innerWidth}x${innerHeight}`,
+  safeAreaInsets: safeArea(),
+  cores: navigator.hardwareConcurrency ?? null,
+  memoryGB: navigator.deviceMemory ?? null,
+  touchPoints: navigator.maxTouchPoints ?? 0,
+  pointer: ["fine", "coarse"].find((p) => media(`(pointer: ${p})`)) ?? "none",
+  hover: media("(hover: hover)"),
+  colorGamutP3: media("(color-gamut: p3)"),
+  hdr: media("(dynamic-range: high)"),
+  prefersDark: media("(prefers-color-scheme: dark)"),
+  language: navigator.language,
+  online: navigator.onLine,
+});
+
+const section = async (checks) => Object.fromEntries(await Promise.all(Object.entries(checks).map(async ([name, f]) => [name, await attempt(f)])));
+const report = { probe: VERSION, at: new Date().toISOString(), device: device(), engine: await section(engine), webApis: await section(webApis) };
+
+// ── show it ──
+const rows = (title, results) => `<h2>${title}</h2><table>${Object.entries(results).map(([name, r]) => `<tr><td class="${r.ok ? "yes" : "no"}">${r.ok ? "✓" : "✗"}</td><td>${name}${r.detail ? `<small>${r.detail}</small>` : ""}</td></tr>`).join("")}</table>`;
+const need = Object.values(report.engine);
+report.runsFsharpWasm = need.every((r) => r.ok);
+document.getElementById("verdict").textContent = report.runsFsharpWasm ? "✓ This device can run fsharp-wasm modules." : `✗ Not yet: ${need.filter((r) => !r.ok).length} of ${need.length} engine features missing.`;
+document.getElementById("out").innerHTML = rows("Engine (needed by every module)", report.engine) + rows("Web APIs", report.webApis) + `<h2>Device</h2><table>${Object.entries(report.device).map(([k, v]) => `<tr><td></td><td>${k}<small>${v}</small></td></tr>`).join("")}</table>`;
+
+const text = JSON.stringify(report, null, 2);
+document.getElementById("copy").onclick = async (e) => { try { await navigator.clipboard.writeText(text); e.target.textContent = "Copied"; } catch { prompt("Copy this report:", text); } };
+if (navigator.share) { const s = document.getElementById("share"); s.hidden = false; s.onclick = () => navigator.share({ title: "fsharp-wasm device report", text }).catch(() => {}); }
+window.__report = report;          // for tests/probe.mjs
+document.body.dataset.done = "1";
+</script>
+</body>
+</html>
