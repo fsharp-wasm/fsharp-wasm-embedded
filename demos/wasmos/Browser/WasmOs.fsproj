@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The browser side of WasmOS: the view and the Elmish loop.  The model is Core/ (pure); the runtime (Browser.Html, Elmish, Timing) is the checkout next to this repository, or FSHARP_RUNTIME_DIR. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <AssemblyName>Demo.WasmOs</AssemblyName>
+    <NoWarn>$(NoWarn);NU1900</NoWarn>
+    <RuntimeRepo Condition="'$(FSHARP_RUNTIME_DIR)' != ''">$(FSHARP_RUNTIME_DIR)</RuntimeRepo>
+    <RuntimeRepo Condition="'$(RuntimeRepo)' == ''">$(MSBuildThisFileDirectory)../../../../fsharp-wasm-runtime</RuntimeRepo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RuntimeRepo)/src/FSharpWasmRuntime.fsproj" />
+    <ProjectReference Include="../Core/WasmOs.Core.fsproj" />
+    <Compile Include="WasmOs.fs" />
+  </ItemGroup>
+
+</Project>

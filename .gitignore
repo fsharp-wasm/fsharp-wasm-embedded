@@ -1,6 +1,10 @@
 # Node
 /node_modules/
 
+# .NET
+bin/
+obj/
+
 # Build output
 /dist/
 /out/

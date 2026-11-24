@@ -1,0 +1,7 @@
+{
+  "name": "fsharp-wasm-embedded",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "features": { "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" } },
+  "postCreateCommand": "npm ci --ignore-scripts && npx playwright install --with-deps chromium",
+  "customizations": { "vscode": { "extensions": ["editorconfig.editorconfig", "ionide.ionide-fsharp"] } }
+}

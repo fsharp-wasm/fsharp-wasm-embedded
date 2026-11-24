@@ -21,3 +21,15 @@ jobs:
 
       - name: The device probe finds what this engine has, and says so when a feature is missing
         run: node tests/probe.mjs
+
+  wasmos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: The model of WasmOS under .NET (windows, gestures, the Android navigation, the apps)
+        run: dotnet run --project demos/wasmos/Tests -c Release

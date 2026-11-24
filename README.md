@@ -1,7 +1,7 @@
 # fsharp-wasm-embedded
 
 <!-- platform -->
-> **Part of the [fsharp-wasm platform](https://fsharp-wasm.github.io/projects/)**: hosts. Builds on [runtime](https://github.com/fsharp-wasm/fsharp-wasm-runtime) and [mobile](https://github.com/fsharp-wasm/fsharp-wasm-mobile). Status: **planned; the device probe exists**.
+> **Part of the [fsharp-wasm platform](https://fsharp-wasm.github.io/projects/)**: hosts. Builds on [runtime](https://github.com/fsharp-wasm/fsharp-wasm-runtime) and [mobile](https://github.com/fsharp-wasm/fsharp-wasm-mobile). Status: **planned; the device probe and the WasmOS demo exist**.
 > [All projects](https://fsharp-wasm.github.io/projects/) · [Roadmap](https://fsharp-wasm.github.io/docs/roadmap/) · [Tests](https://fsharp-wasm.github.io/tests/) · [Benchmarks](https://fsharp-wasm.github.io/benchmarks/) · [Live demos](https://fsharp-wasm.github.io/demos/)
 
 The **universal shell** of the platform: one F# application, compiled to WebAssembly GC, runs as a native app on the desktop (Windows, macOS, Linux) and on a phone or tablet (iOS, Android),
@@ -27,6 +27,18 @@ It ends with a verdict and a report you can copy. **Sending one in is a contribu
 |---|---|---|---|---|
 | a container, headless | Linux | Chromium 153 | all four | 2026-11-24, probe 1 (the test) |
 
+## WasmOS: the same application in the chrome of each system
+
+[`demos/wasmos`](demos/wasmos) is a small desktop in F# — windows you drag, resize and minimise, a launcher, five apps — that is **Windows, macOS, Android or a Linux desktop** from one program: the model is a
+pure function (tested under .NET), the module states the DOM and the class of the screen, and a stylesheet makes each system look as it does. It shows what the shell is for, before there is a shell. Live in the
+[runtime's demos](https://fsharp-wasm.github.io/fsharp-wasm-runtime/demos/wasmos/) once the site is deployed; `node tests/e2e/wasmos.mjs` in the runtime drives it (46 checks).
+
+| Windows | macOS |
+|---|---|
+| ![WasmOS as Windows: a taskbar, three windows](docs/images/wasmos-windows.png) | ![WasmOS as macOS: a menu bar and a dock](docs/images/wasmos-macos.png) |
+| **Linux** | **Android** |
+| ![WasmOS as a Linux desktop: a top panel and a dock](docs/images/wasmos-linux.png) | ![WasmOS as Android: a status bar and a navigation bar](docs/images/wasmos-android.png) |
+
 ## How it is meant to fit
 
 ```text
@@ -45,7 +57,7 @@ Proposals, not decisions: [docs/architecture.md](docs/architecture.md) (the mani
 ## Where it goes
 
 1. **The matrix** (now): the probe, and a table of devices from reports.
-2. **A spike**: one existing demo (the accounting grid) in a shell on Linux, macOS and Windows; measured: size of the app, start-up, what the web view of each OS runs.
+2. **A spike**: one existing demo (the accounting grid or WasmOS) in a shell on Linux, macOS and Windows; measured: size of the app, start-up, what the web view of each OS runs.
 3. **The bridge and the manifest**, with the first device APIs from [fsharp-wasm-mobile](https://github.com/fsharp-wasm/fsharp-wasm-mobile).
 4. **iOS and Android.**
 5. **Packaging, signing, updates.**

@@ -5,7 +5,8 @@
   "description": "The universal shell of the fsharp-wasm platform: desktop and mobile hosts for compiled WebAssembly GC applications.",
   "type": "module",
   "scripts": {
-    "test": "node tests/probe.mjs"
+    "test": "node tests/probe.mjs",
+    "test:wasmos": "dotnet run --project demos/wasmos/Tests -c Release"
   },
   "license": "Apache-2.0",
   "devDependencies": {
